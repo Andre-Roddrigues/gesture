@@ -1,94 +1,95 @@
-const video = document.getElementById('video');
-const canvas = document.getElementById('canvas');
-const ctx = canvas.getContext('2d');
-const fingerCountEl = document.getElementById('fingerCount');
+const video = document.getElementById("video");
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+
+const fingersEl = document.getElementById("fingers");
+const letterEl = document.getElementById("letter");
 
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
 
-// MediaPipe Hands
+let drawing = false;
+let path = [];
+
 const hands = new Hands({
-  locateFile: file =>
-    `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+  locateFile: f => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${f}`
 });
 
 hands.setOptions({
   maxNumHands: 1,
   modelComplexity: 1,
-  minDetectionConfidence: 0.75,
-  minTrackingConfidence: 0.75
+  minDetectionConfidence: 0.8,
+  minTrackingConfidence: 0.8
 });
 
 hands.onResults(results => {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  if (!results.multiHandLandmarks) return;
 
-  if (!results.multiHandLandmarks) {
-    fingerCountEl.textContent = 0;
-    return;
-  }
+  const lm = results.multiHandLandmarks[0];
+  const fingers = countFingers(lm);
+  fingersEl.textContent = fingers;
 
-  const landmarks = results.multiHandLandmarks[0];
+  const x = (1 - lm[8].x) * canvas.width;
+  const y = lm[8].y * canvas.height;
 
-  const fingersUp = countFingers(landmarks);
-  fingerCountEl.textContent = fingersUp;
-
-  // Posição do dedo indicador
-  const x = (1 - landmarks[8].x) * canvas.width;
-  const y = landmarks[8].y * canvas.height;
-
-  ctx.strokeStyle = '#00eaff';
+  ctx.strokeStyle = "#00f0ff";
   ctx.lineWidth = 4;
+  ctx.lineCap = "round";
 
-  if (fingersUp === 1) {
-    drawLine(x, y);
+  if (fingers === 1) {
+    drawing = true;
+    path.push({ x, y });
+
+    ctx.beginPath();
+    if (path.length > 1) {
+      ctx.moveTo(path[path.length - 2].x, path[path.length - 2].y);
+    }
+    ctx.lineTo(x, y);
+    ctx.stroke();
   }
 
-  if (fingersUp === 2) {
-    drawCircle(x, y);
-  }
-
-  if (fingersUp === 3) {
-    drawSquare(x, y);
+  if (fingers === 0 && drawing) {
+    drawing = false;
+    recognizeLetter(path);
+    path = [];
   }
 });
 
-// Funções de desenho
-function drawLine(x, y) {
-  ctx.beginPath();
-  ctx.moveTo(x - 50, y);
-  ctx.lineTo(x + 50, y);
-  ctx.stroke();
-}
-
-function drawCircle(x, y) {
-  ctx.beginPath();
-  ctx.arc(x, y, 45, 0, Math.PI * 2);
-  ctx.stroke();
-}
-
-function drawSquare(x, y) {
-  ctx.strokeRect(x - 45, y - 45, 90, 90);
-}
-
 // Contagem correta de dedos
-function countFingers(landmarks) {
+function countFingers(lm) {
   let count = 0;
+
+  if (lm[4].x < lm[3].x) count++; // polegar
 
   const tips = [8, 12, 16, 20];
   const bases = [6, 10, 14, 18];
 
   for (let i = 0; i < tips.length; i++) {
-    if (landmarks[tips[i]].y < landmarks[bases[i]].y) {
-      count++;
-    }
-  }
-
-  // Polegar (comparação horizontal)
-  if (landmarks[4].x < landmarks[3].x) {
-    count++;
+    if (lm[tips[i]].y < lm[bases[i]].y) count++;
   }
 
   return count;
+}
+
+// Reconhecimento simples de letras (heurístico)
+function recognizeLetter(points) {
+  if (points.length < 10) return;
+
+  const minX = Math.min(...points.map(p => p.x));
+  const maxX = Math.max(...points.map(p => p.x));
+  const minY = Math.min(...points.map(p => p.y));
+  const maxY = Math.max(...points.map(p => p.y));
+
+  const width = maxX - minX;
+  const height = maxY - minY;
+
+  let letter = "?";
+
+  if (height > width * 1.5) letter = "I";
+  else if (width > height * 1.5) letter = "-";
+  else letter = "O";
+
+  letterEl.textContent = letter;
 }
 
 // Camera

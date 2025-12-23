@@ -2,57 +2,59 @@
 <html lang="pt">
 <head>
   <meta charset="UTF-8" />
-  <title>Gestos com a Mão</title>
+  <title>Air Writing</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <style>
     body {
       margin: 0;
+      background: #050505;
       overflow: hidden;
-      background: #0a0a0a;
       font-family: Arial, sans-serif;
     }
 
-    video, canvas {
+    video {
       position: absolute;
-      transform: scaleX(-1); /* ESPELHO */
+      left: 0;
+      top: 0;
+    }
+
+    canvas {
+      position: absolute;
+      left: 0;
+      top: 0;
+      transform: scaleX(-1); /* espelha apenas o desenho */
     }
 
     #menu {
       position: fixed;
       right: 0;
       top: 0;
-      width: 220px;
+      width: 240px;
       height: 100%;
-      background: linear-gradient(180deg, #0f2027, #203a43, #2c5364);
-      color: #00eaff;
+      background: linear-gradient(180deg, #0f2027, #203a43);
+      color: #00f0ff;
       padding: 20px;
-      box-shadow: -4px 0 15px rgba(0,0,0,0.6);
-    }
-
-    #menu h2 {
-      margin-top: 0;
-      font-size: 18px;
-      border-bottom: 1px solid #00eaff;
-      padding-bottom: 8px;
-    }
-
-    .info {
-      margin-top: 15px;
-      font-size: 14px;
+      box-shadow: -4px 0 20px rgba(0,0,0,0.7);
     }
 
     .counter {
-      font-size: 48px;
-      font-weight: bold;
+      font-size: 46px;
       text-align: center;
-      margin-top: 20px;
+      margin: 10px 0;
     }
 
-    .gesture {
-      margin-top: 10px;
+    .label {
+      margin-top: 20px;
       font-size: 13px;
-      opacity: 0.9;
+      opacity: 0.8;
+    }
+
+    .letter {
+      font-size: 60px;
+      text-align: center;
+      margin-top: 15px;
+      color: #00ff9c;
     }
   </style>
 </head>
@@ -62,17 +64,20 @@
   <canvas id="canvas"></canvas>
 
   <div id="menu">
-    <h2>🤖 Hand Tracker</h2>
+    <h2>🧠 Air Writing</h2>
 
-    <div class="info">Dedos levantados</div>
-    <div id="fingerCount" class="counter">0</div>
+    <div class="label">Dedos levantados</div>
+    <div id="fingers" class="counter">0</div>
 
-    <div class="gesture">☝️ 1 dedo → Linha</div>
-    <div class="gesture">✌️ 2 dedos → Círculo</div>
-    <div class="gesture">🤟 3 dedos → Quadrado</div>
+    <div class="label">Letra detectada</div>
+    <div id="letter" class="letter">–</div>
+
+    <div class="label">
+      ☝️ 1 dedo → desenhar<br>
+      ✊ 0 dedos → analisar letra
+    </div>
   </div>
 
-  <!-- MediaPipe -->
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
   <script src="app.js"></script>

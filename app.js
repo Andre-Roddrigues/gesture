@@ -1,17 +1,15 @@
 const video = document.getElementById("video");
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
-
 const fingersEl = document.getElementById("fingers");
-const letterEl = document.getElementById("letter");
 
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
 
 let drawing = false;
-let path = [];
+let lastPoint = null;
 
-// ================= HANDS =================
+// ================= MEDIA PIPE =================
 const hands = new Hands({
   locateFile: f => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${f}`
 });
@@ -19,14 +17,15 @@ const hands = new Hands({
 hands.setOptions({
   maxNumHands: 1,
   modelComplexity: 1,
-  minDetectionConfidence: 0.8,
-  minTrackingConfidence: 0.8
+  minDetectionConfidence: 0.7,
+  minTrackingConfidence: 0.7
 });
 
-// ================= RESULTS =================
 hands.onResults(results => {
-  if (!results.multiHandLandmarks) {
+  if (!results.multiHandLandmarks || !results.multiHandedness) {
     fingersEl.textContent = 0;
+    drawing = false;
+    lastPoint = null;
     return;
   }
 
@@ -36,99 +35,71 @@ hands.onResults(results => {
   const fingers = countFingers(landmarks, handedness);
   fingersEl.textContent = fingers;
 
-  const x = (1 - landmarks[8].x) * canvas.width;
+  const x = landmarks[8].x * canvas.width;
   const y = landmarks[8].y * canvas.height;
 
   ctx.strokeStyle = "#00f0ff";
   ctx.lineWidth = 4;
   ctx.lineCap = "round";
 
-  // DESENHO COM RASTRO
   if (fingers === 1) {
     drawing = true;
-    path.push({ x, y });
 
-    if (path.length > 1) {
+    if (lastPoint) {
       ctx.beginPath();
-      ctx.moveTo(path[path.length - 2].x, path[path.length - 2].y);
+      ctx.moveTo(lastPoint.x, lastPoint.y);
       ctx.lineTo(x, y);
       ctx.stroke();
     }
-  }
 
-  // FINALIZA DESENHO
-  if (fingers === 0 && drawing) {
+    lastPoint = { x, y };
+  } else {
     drawing = false;
-    recognizeLetter(path);
-    path = [];
+    lastPoint = null;
   }
 });
 
-// ================= CONTAR DEDOS (CORRETO) =================
-function countFingers(landmarks, handedness) {
+// ================= CONTAGEM CORRETA =================
+function countFingers(lm, handedness) {
   let count = 0;
   const isRightHand = handedness.label === "Right";
 
-  // POLEGAR (X)
+  // Polegar (X)
   if (isRightHand) {
-    if (landmarks[4].x > landmarks[3].x) count++;
+    if (lm[4].x > lm[3].x) count++;
   } else {
-    if (landmarks[4].x < landmarks[3].x) count++;
+    if (lm[4].x < lm[3].x) count++;
   }
 
-  // OUTROS DEDOS (Y)
+  // Outros dedos (Y)
   const tips = [8, 12, 16, 20];
   const bases = [6, 10, 14, 18];
 
   for (let i = 0; i < tips.length; i++) {
-    if (landmarks[tips[i]].y < landmarks[bases[i]].y) {
-      count++;
-    }
+    if (lm[tips[i]].y < lm[bases[i]].y) count++;
   }
 
   return count;
 }
 
-// ================= RECONHECIMENTO SIMPLES =================
-function recognizeLetter(points) {
-  if (points.length < 15) return;
+// ================= CÂMERA (SEM BUG NO MOBILE) =================
+navigator.mediaDevices.getUserMedia({
+  video: { facingMode: "user" }
+}).then(stream => {
+  video.srcObject = stream;
+  video.play();
+});
 
-  const minX = Math.min(...points.map(p => p.x));
-  const maxX = Math.max(...points.map(p => p.x));
-  const minY = Math.min(...points.map(p => p.y));
-  const maxY = Math.max(...points.map(p => p.y));
-
-  const w = maxX - minX;
-  const h = maxY - minY;
-
-  let letter = "?";
-
-  if (h > w * 1.5) letter = "I";
-  else if (w > h * 1.5) letter = "-";
-  else letter = "O";
-
-  letterEl.textContent = letter;
+async function processFrame() {
+  if (video.readyState === 4) {
+    await hands.send({ image: video });
+  }
+  requestAnimationFrame(processFrame);
 }
 
-// ================= CAMERA =================
-const camera = new Camera(video, {
-  onFrame: async () => {
-    await hands.send({ image: video });
-  },
-  width: 1280,
-  height: 720
-});
-
-camera.start();
-// ================= LIMPAR CANVAS =================
-document.getElementById("clear").addEventListener("click", () => {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  letterEl.textContent = "";
-});
-// ================= AJUSTAR TAMANHO DO CANVAS =================
+processFrame();
+// ================= AJUSTE DE TAMANHO =================
 window.addEventListener("resize", () => {
-  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
   canvas.width = window.innerWidth;
   canvas.height = window.innerHeight;
-  ctx.putImageData(imageData, 0, 0);
 });

@@ -11,6 +11,7 @@ canvas.height = window.innerHeight;
 let drawing = false;
 let path = [];
 
+// ================= HANDS =================
 const hands = new Hands({
   locateFile: f => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${f}`
 });
@@ -22,32 +23,40 @@ hands.setOptions({
   minTrackingConfidence: 0.8
 });
 
+// ================= RESULTS =================
 hands.onResults(results => {
-  if (!results.multiHandLandmarks) return;
+  if (!results.multiHandLandmarks) {
+    fingersEl.textContent = 0;
+    return;
+  }
 
-  const lm = results.multiHandLandmarks[0];
-  const fingers = countFingers(lm);
+  const landmarks = results.multiHandLandmarks[0];
+  const handedness = results.multiHandedness[0];
+
+  const fingers = countFingers(landmarks, handedness);
   fingersEl.textContent = fingers;
 
-  const x = (1 - lm[8].x) * canvas.width;
-  const y = lm[8].y * canvas.height;
+  const x = (1 - landmarks[8].x) * canvas.width;
+  const y = landmarks[8].y * canvas.height;
 
   ctx.strokeStyle = "#00f0ff";
   ctx.lineWidth = 4;
   ctx.lineCap = "round";
 
+  // DESENHO COM RASTRO
   if (fingers === 1) {
     drawing = true;
     path.push({ x, y });
 
-    ctx.beginPath();
     if (path.length > 1) {
+      ctx.beginPath();
       ctx.moveTo(path[path.length - 2].x, path[path.length - 2].y);
+      ctx.lineTo(x, y);
+      ctx.stroke();
     }
-    ctx.lineTo(x, y);
-    ctx.stroke();
   }
 
+  // FINALIZA DESENHO
   if (fingers === 0 && drawing) {
     drawing = false;
     recognizeLetter(path);
@@ -55,44 +64,53 @@ hands.onResults(results => {
   }
 });
 
-// Contagem correta de dedos
-function countFingers(lm) {
+// ================= CONTAR DEDOS (CORRETO) =================
+function countFingers(landmarks, handedness) {
   let count = 0;
+  const isRightHand = handedness.label === "Right";
 
-  if (lm[4].x < lm[3].x) count++; // polegar
+  // POLEGAR (X)
+  if (isRightHand) {
+    if (landmarks[4].x > landmarks[3].x) count++;
+  } else {
+    if (landmarks[4].x < landmarks[3].x) count++;
+  }
 
+  // OUTROS DEDOS (Y)
   const tips = [8, 12, 16, 20];
   const bases = [6, 10, 14, 18];
 
   for (let i = 0; i < tips.length; i++) {
-    if (lm[tips[i]].y < lm[bases[i]].y) count++;
+    if (landmarks[tips[i]].y < landmarks[bases[i]].y) {
+      count++;
+    }
   }
 
   return count;
 }
 
-// Reconhecimento simples de letras (heurístico)
+// ================= RECONHECIMENTO SIMPLES =================
 function recognizeLetter(points) {
-  if (points.length < 10) return;
+  if (points.length < 15) return;
 
   const minX = Math.min(...points.map(p => p.x));
   const maxX = Math.max(...points.map(p => p.x));
   const minY = Math.min(...points.map(p => p.y));
   const maxY = Math.max(...points.map(p => p.y));
 
-  const width = maxX - minX;
-  const height = maxY - minY;
+  const w = maxX - minX;
+  const h = maxY - minY;
 
   let letter = "?";
 
-  if (height > width * 1.5) letter = "I";
-  else if (width > height * 1.5) letter = "-";
+  if (h > w * 1.5) letter = "I";
+  else if (w > h * 1.5) letter = "-";
   else letter = "O";
 
   letterEl.textContent = letter;
 }
 
-// Camera
+// ================= CAMERA =================
 const camera = new Camera(video, {
   onFrame: async () => {
     await hands.send({ image: video });
@@ -102,3 +120,15 @@ const camera = new Camera(video, {
 });
 
 camera.start();
+// ================= LIMPAR CANVAS =================
+document.getElementById("clear").addEventListener("click", () => {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  letterEl.textContent = "";
+});
+// ================= AJUSTAR TAMANHO DO CANVAS =================
+window.addEventListener("resize", () => {
+  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+  ctx.putImageData(imageData, 0, 0);
+});

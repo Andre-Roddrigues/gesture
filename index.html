@@ -15,14 +15,14 @@
 
     video {
       position: absolute;
-      left: 0;
       top: 0;
+      left: 0;
     }
 
     canvas {
       position: absolute;
-      left: 0;
       top: 0;
+      left: 0;
       transform: scaleX(-1); /* espelha apenas o desenho */
     }
 
@@ -38,22 +38,28 @@
       box-shadow: -4px 0 20px rgba(0,0,0,0.7);
     }
 
+    h2 {
+      margin-top: 0;
+      border-bottom: 1px solid #00f0ff;
+      padding-bottom: 8px;
+    }
+
+    .label {
+      margin-top: 18px;
+      font-size: 13px;
+      opacity: 0.8;
+    }
+
     .counter {
       font-size: 46px;
       text-align: center;
       margin: 10px 0;
     }
 
-    .label {
-      margin-top: 20px;
-      font-size: 13px;
-      opacity: 0.8;
-    }
-
     .letter {
       font-size: 60px;
       text-align: center;
-      margin-top: 15px;
+      margin-top: 10px;
       color: #00ff9c;
     }
   </style>
@@ -74,12 +80,14 @@
 
     <div class="label">
       ☝️ 1 dedo → desenhar<br>
-      ✊ 0 dedos → analisar letra
+      ✊ 0 dedos → analisar
     </div>
   </div>
 
+  <!-- MediaPipe -->
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+
   <script src="app.js"></script>
 </body>
 </html>

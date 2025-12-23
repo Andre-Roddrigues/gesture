@@ -4,19 +4,55 @@
   <meta charset="UTF-8" />
   <title>Gestos com a Mão</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
   <style>
-    body { margin: 0; overflow: hidden; background: #000; }
-    canvas, video { position: absolute; }
-    #info {
+    body {
+      margin: 0;
+      overflow: hidden;
+      background: #0a0a0a;
+      font-family: Arial, sans-serif;
+    }
+
+    video, canvas {
+      position: absolute;
+      transform: scaleX(-1); /* ESPELHO */
+    }
+
+    #menu {
       position: fixed;
-      bottom: 10px;
-      left: 50%;
-      transform: translateX(-50%);
-      color: white;
-      background: rgba(0,0,0,.6);
-      padding: 8px 12px;
-      border-radius: 8px;
+      right: 0;
+      top: 0;
+      width: 220px;
+      height: 100%;
+      background: linear-gradient(180deg, #0f2027, #203a43, #2c5364);
+      color: #00eaff;
+      padding: 20px;
+      box-shadow: -4px 0 15px rgba(0,0,0,0.6);
+    }
+
+    #menu h2 {
+      margin-top: 0;
+      font-size: 18px;
+      border-bottom: 1px solid #00eaff;
+      padding-bottom: 8px;
+    }
+
+    .info {
+      margin-top: 15px;
       font-size: 14px;
+    }
+
+    .counter {
+      font-size: 48px;
+      font-weight: bold;
+      text-align: center;
+      margin-top: 20px;
+    }
+
+    .gesture {
+      margin-top: 10px;
+      font-size: 13px;
+      opacity: 0.9;
     }
   </style>
 </head>
@@ -25,8 +61,15 @@
   <video id="video" autoplay playsinline></video>
   <canvas id="canvas"></canvas>
 
-  <div id="info">
-    ☝️ Linha | ✌️ Círculo | 🤟 Quadrado
+  <div id="menu">
+    <h2>🤖 Hand Tracker</h2>
+
+    <div class="info">Dedos levantados</div>
+    <div id="fingerCount" class="counter">0</div>
+
+    <div class="gesture">☝️ 1 dedo → Linha</div>
+    <div class="gesture">✌️ 2 dedos → Círculo</div>
+    <div class="gesture">🤟 3 dedos → Quadrado</div>
   </div>
 
   <!-- MediaPipe -->

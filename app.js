@@ -1,6 +1,7 @@
 const video = document.getElementById('video');
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
+const fingerCountEl = document.getElementById('fingerCount');
 
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
@@ -13,56 +14,80 @@ const hands = new Hands({
 
 hands.setOptions({
   maxNumHands: 1,
-  minDetectionConfidence: 0.7,
-  minTrackingConfidence: 0.7
+  modelComplexity: 1,
+  minDetectionConfidence: 0.75,
+  minTrackingConfidence: 0.75
 });
 
 hands.onResults(results => {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  if (!results.multiHandLandmarks) return;
+  if (!results.multiHandLandmarks) {
+    fingerCountEl.textContent = 0;
+    return;
+  }
 
   const landmarks = results.multiHandLandmarks[0];
 
-  // Conta dedos levantados
   const fingersUp = countFingers(landmarks);
+  fingerCountEl.textContent = fingersUp;
 
-  const x = landmarks[8].x * canvas.width;
+  // Posição do dedo indicador
+  const x = (1 - landmarks[8].x) * canvas.width;
   const y = landmarks[8].y * canvas.height;
 
-  ctx.strokeStyle = 'cyan';
+  ctx.strokeStyle = '#00eaff';
   ctx.lineWidth = 4;
 
   if (fingersUp === 1) {
-    ctx.beginPath();
-    ctx.moveTo(x - 40, y);
-    ctx.lineTo(x + 40, y);
-    ctx.stroke();
+    drawLine(x, y);
   }
 
   if (fingersUp === 2) {
-    ctx.beginPath();
-    ctx.arc(x, y, 40, 0, Math.PI * 2);
-    ctx.stroke();
+    drawCircle(x, y);
   }
 
   if (fingersUp === 3) {
-    ctx.strokeRect(x - 40, y - 40, 80, 80);
+    drawSquare(x, y);
   }
 });
 
-// Contar dedos levantados
+// Funções de desenho
+function drawLine(x, y) {
+  ctx.beginPath();
+  ctx.moveTo(x - 50, y);
+  ctx.lineTo(x + 50, y);
+  ctx.stroke();
+}
+
+function drawCircle(x, y) {
+  ctx.beginPath();
+  ctx.arc(x, y, 45, 0, Math.PI * 2);
+  ctx.stroke();
+}
+
+function drawSquare(x, y) {
+  ctx.strokeRect(x - 45, y - 45, 90, 90);
+}
+
+// Contagem correta de dedos
 function countFingers(landmarks) {
   let count = 0;
 
   const tips = [8, 12, 16, 20];
-  const base = [6, 10, 14, 18];
+  const bases = [6, 10, 14, 18];
 
   for (let i = 0; i < tips.length; i++) {
-    if (landmarks[tips[i]].y < landmarks[base[i]].y) {
+    if (landmarks[tips[i]].y < landmarks[bases[i]].y) {
       count++;
     }
   }
+
+  // Polegar (comparação horizontal)
+  if (landmarks[4].x < landmarks[3].x) {
+    count++;
+  }
+
   return count;
 }
 
